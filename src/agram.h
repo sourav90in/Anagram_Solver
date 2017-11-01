@@ -23,6 +23,8 @@ struct Stk_Node;
 //Other friend or public functions here
 void CondFileScanner(Letter_Invent*, Hmap*);
 void AgramSolver();
+void BtrackLooper(Hmap*, Letter_Invent, Stk*, int);
+void Btrack(Hmap*, Letter_Invent, Stk*, int, int);
 }
 
 struct ag::MapNode
@@ -51,8 +53,10 @@ public:
 	Hmap():arr{NULL},size{0} { }
 	void insert(string,Letter_Invent*);
 	Letter_Invent* fetch_inven(string);
-
-
+	friend void ag::CondFileScanner(Letter_Invent*, Hmap*);
+	friend void ag::AgramSolver();
+	friend void ag::BtrackLooper(Hmap*, Letter_Invent, Stk*, int);
+	friend void ag::Btrack(Hmap*, Letter_Invent, Stk*, int, int);
 };
 
 /* Functions needed for this class:
@@ -70,6 +74,9 @@ public:
 	void CreateInvent(string);
 	bool subtract(Letter_Invent*);
 	friend void ag::CondFileScanner(Letter_Invent*, Hmap*);
+	friend void ag::AgramSolver();
+	friend void ag::BtrackLooper(Hmap*, Letter_Invent, Stk*, int);
+	friend void ag::Btrack(Hmap*, Letter_Invent, Stk*, int, int);
 protected:
 	void ClearInvent();
 	void AdjustInvent(string);
@@ -90,6 +97,10 @@ private:
 public:
 	void Push(string);
 	string Pop();
+	friend void ag::CondFileScanner(Letter_Invent*, Hmap*);
+	friend void ag::AgramSolver();
+	friend void ag::BtrackLooper(Hmap*, Letter_Invent, Stk*, int);
+	friend void ag::Btrack(Hmap*, Letter_Invent, Stk*, int, int);
 };
 /* Optimizations are:
  * Only sleect dict words whose subtract return >0

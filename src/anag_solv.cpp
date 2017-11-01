@@ -36,16 +36,11 @@ string Stk::Pop()
 	else
 	{
 		Stk_Node* tmp = this->st_ptr;
-		Stk_Node* prev;
-		while(tmp->next != NULL )
-		{
-			prev = tmp;
-			tmp = tmp->next;
-		}
+		this->st_ptr = this->st_ptr->next;
 		tmp_str = tmp->str;
-		prev->next = NULL;
 		delete tmp;
 		return tmp_str;
+
 	}
 }
 
@@ -210,10 +205,6 @@ string StringProcesser(string str)
 	return str;
 }
 
-/* Other functions needed:
- * a) BAcktrack handler func
- * b) Main processing function that handles main code.
- */
 void AgramSolver()
 {
 	/* Take input string- process it remove spaces and /r at the end
@@ -241,37 +232,63 @@ void AgramSolver()
 
 	int max = 2; //To be changed if max needs to be differed
 
-	Btrack(hm_ptr,mod_iv,stk_ptr, &max);
+	BtrackLooper(hm_ptr,mod_iv,stk_ptr, &max);
 
-	while(stk_ptr->Pop() != "\0" )
+}
+
+void BtrackLooper(Hmap* hm_ptr, Letter_Invent iv, Stk* stk_ptr, int max)
+{
+	for(int i=0; i< hm_ptr->size; i++ )
 	{
-		cout<<stk_ptr->Pop();
+		Btrack(hm_ptr, iv, stk_ptr, max, i);
+		/* Cleanup stack for next iter usage */
+		string tmp2 = stk_ptr->Pop();
+		while(tmp2 != "\0")
+			stk_ptr->Pop();
+	}
+}
+
+void Btrack(Hmap* hm_ptr, Letter_Invent iv, Stk* stk_ptr, int max, int i)
+{
+	if( (i == hm_ptr->size ) || (max == 0) )
+		return;
+
+	if( iv.subtract(hm_ptr->arr[i]->iv_ptr) == true )
+	{
+		iv.AdjustInvent(hm_ptr->arr[i]->str1);
+		max--;
+		if( ( iv.isInventoryClean() == false ) && (max > 0) )
+		{
+			stk_ptr->Push(hm_ptr->arr[i]->str1);
+			for(int j=i+1; j < hm_ptr->size; j++ )
+			{
+				Btrack(hm_ptr,iv,stk_ptr, max, j);
+			}
+
+		}
+		else if( iv.isInventoryClean() == true )
+	    {
+			string tmp_str;
+			while( ( tmp_str = stk_ptr->Pop() ) != "\0" )
+			{
+				cout<<tmp_str<<" ";
+			}
+			cout<<"\n";
+	    }
+		else
+		{
+			/* Inventory hasnt been cleaned with the set of words used but max limit reached
+			 * clean the stack contents
+			 */
+			string tmp2 = stk_ptr->Pop();
+			while(tmp2 != "\0 ")
+				stk_ptr->Pop();
+		}
+
 	}
 
 }
 
 /* TO DO:
  * Define destructors
- * Correct brack below
- * define friend funcs correctly.
  */
-
-/* This function below needs correction*/
-void Btrack(Hmap* hm_ptr, Letter_Invent iv, Stk* stk_ptr, int* max )
-{
-	static int hm_count = 0;
-	Letter_Invent iv_cp = iv;
-	while ( (hm_count < hm_ptr->size) && ( max > 0 ) )
-	{
-		stk_ptr->Push(hm_ptr->arr[hm_count]->str1);
-		iv.AdjustInvent(hm_ptr->arr[hm_count]->str1);
-		hm_count++;
-		*max = *max -1;
-		if( iv.isInventoryClean() == false )
-		{
-			Btrack(hm_ptr,iv,stk_ptr,max);
-		}
-
-
-	}
-}
