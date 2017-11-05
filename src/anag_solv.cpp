@@ -22,13 +22,14 @@ void Stk::Push(string str)
 		}
 
 		tmp->next = new Stk_Node;
-		tmp->str = str;
+		tmp->next->str = str;
 		tmp->next->next = NULL;
 	}
+	this->size++;
 
 }
 
-string Stk::Pop()
+string Stk::Pop(bool fifo)
 {
 	string tmp_str = "\0";
 	if( this->st_ptr == NULL )
@@ -36,11 +37,31 @@ string Stk::Pop()
 	else
 	{
 		Stk_Node* tmp = this->st_ptr;
-		this->st_ptr = this->st_ptr->next;
-		tmp_str = tmp->str;
-		delete tmp;
-		return tmp_str;
-
+		Stk_Node* prev = this->st_ptr;
+		/* Empty the stack in fifo manner for printing in dict order */
+		if( fifo == true )
+		{
+			this->st_ptr = this->st_ptr->next;
+			tmp_str = tmp->str;
+			delete tmp;
+			this->size--;
+			if( this->size == 0 )  this->st_ptr = NULL;
+			return tmp_str;
+		}
+		else
+		{
+			while( tmp->next != NULL )
+			{
+				prev = tmp;
+				tmp = tmp->next;
+			}
+			prev->next = NULL;
+			tmp_str = tmp->str;
+			delete tmp;
+			this->size--;
+			if(this->size == 0 ) this->st_ptr = NULL;
+			return tmp_str;
+		}
 	}
 }
 
@@ -92,11 +113,11 @@ void Letter_Invent::AdjustInvent(string d_str)
 {
 	int count =0;
 	char ch;
-	while(count < d_str.length())
+	while( count < d_str.length() - 1 )
 	{
 		ch = tolower(d_str[count]);
 		this->arr[ch %97]--;
-		count++
+		count++;
 	}
 
 }
@@ -116,6 +137,7 @@ bool Letter_Invent::isInventoryClean()
 Hmap::Hmap()
 {
 	this->size = 0;
+	//this->arr = NULL;
 	this->arr = new MapNode*;
 }
 
@@ -149,11 +171,12 @@ Letter_Invent* Hmap::fetch_inven(string str)
  * Objects alphabet inentory
  *
  */
-void CondFileScanner(Letter_Invent* iv_ptr, Hmap* hm_ptr)
+void ag::CondFileScanner(Letter_Invent* iv_ptr, Hmap* hm_ptr)
 {
 	string line;
 	cout<<"Enter name of the dictionary: ";
-	getline(cin, line);
+	//getline(cin, line);
+	line = "dict2.txt\r";
 	line = line.substr(0,line.length()-1);
 	ifstream fhl( line);
 	if( fhl.is_open() )
@@ -166,7 +189,7 @@ void CondFileScanner(Letter_Invent* iv_ptr, Hmap* hm_ptr)
 		Letter_Invent* div_ptr;
 		while( getline(fhl, line) )
 		{
-			line = line.substr(0,line.length()-1);  //Remove the /r
+			//line = line.substr(0,line.length()-1);  //Remove the /r
 			div_ptr = new Letter_Invent;
 			div_ptr->ClearInvent();   //This means this function has to be a friend now :}
 			div_ptr->CreateInvent(line);
@@ -181,6 +204,16 @@ void CondFileScanner(Letter_Invent* iv_ptr, Hmap* hm_ptr)
 	else
 	{
 		throw runtime_error{"Cannot open the file"};
+	}
+}
+
+void Hmap::DumpDict()
+{
+	int count = 0;
+	while( count < this->size )
+	{
+		cout<<this->arr[count]->str1<<"\n";
+		count++;
 	}
 }
 
@@ -201,11 +234,11 @@ string StringProcesser(string str)
 		}
 		count++;
 	}
-	str.resize(str.length()-1); //removes the /r at the end.
+	//str.resize(str.length()-1); //removes the /r at the end.
 	return str;
 }
 
-void AgramSolver()
+void ag::AgramSolver()
 {
 	/* Take input string- process it remove spaces and /r at the end
 	 * Create its inventory
@@ -217,38 +250,61 @@ void AgramSolver()
 
 	string ip_str;
 	cout<<"Enter the string whose anagrams you need:";
-	getline(cin,ip_str);
+	//getline(cin,ip_str);
+	ip_str = "dad may hem\r";
 	ip_str = StringProcesser(ip_str);
 
-	Letter_Invent* iv_ptr = new Letter_Invent;
+	Letter_Invent* iv_ptr = new Letter_Invent;  //To be destoyed
 	iv_ptr->CreateInvent(ip_str);
 
 	Letter_Invent mod_iv = *iv_ptr;
 
-	Hmap* hm_ptr = new Hmap();
+	Hmap* hm_ptr = new Hmap();  // To be destroyed
 	CondFileScanner(iv_ptr,hm_ptr);
 
-	Stk* stk_ptr = new Stk;
+	//Dump the reduced dictionary data to console
+	//hm_ptr->DumpDict();
+	Stk* stk_ptr = new Stk();  //Destructor not needed as Stack is cleaned up in BtrakLooper
 
-	int max = 2; //To be changed if max needs to be differed
+	int max = 5; //To be changed if max needs to be differed
 
-	BtrackLooper(hm_ptr,mod_iv,stk_ptr, &max);
+	BtrackLooper(hm_ptr,mod_iv,stk_ptr, max);
+
+	//Destroy
+	delete iv_ptr;
+	delete hm_ptr;
+	delete stk_ptr;
 
 }
 
-void BtrackLooper(Hmap* hm_ptr, Letter_Invent iv, Stk* stk_ptr, int max)
+Hmap::~Hmap()
+{
+	int count = 0;
+	while( count < this->size )
+	{
+		delete this->arr[count]->iv_ptr;
+		delete this->arr[count];
+		count++;
+	}
+	//delete this->arr;
+}
+
+void ag::BtrackLooper(Hmap* hm_ptr, Letter_Invent iv, Stk* stk_ptr, int max)
 {
 	for(int i=0; i< hm_ptr->size; i++ )
 	{
-		Btrack(hm_ptr, iv, stk_ptr, max, i);
-		/* Cleanup stack for next iter usage */
-		string tmp2 = stk_ptr->Pop();
+		Btrack(hm_ptr, iv, stk_ptr, max, i, i);
+		/* Dummy Cleanup stack for next iter usage
+		 * incase any cleanup conditions have been missed */
+		string tmp2 = stk_ptr->Pop(false);
 		while(tmp2 != "\0")
-			stk_ptr->Pop();
+		{
+			tmp2 = stk_ptr->Pop(false);
+		}
 	}
 }
 
-void Btrack(Hmap* hm_ptr, Letter_Invent iv, Stk* stk_ptr, int max, int i)
+void ag::Btrack(Hmap* hm_ptr, Letter_Invent iv, Stk* stk_ptr, int max, int i, int in_idx)
 {
 	if( (i == hm_ptr->size ) || (max == 0) )
 		return;
@@ -256,38 +312,52 @@ void Btrack(Hmap* hm_ptr, Letter_Invent iv, Stk* stk_ptr, int max, int i)
 	if( iv.subtract(hm_ptr->arr[i]->iv_ptr) == true )
 	{
 		iv.AdjustInvent(hm_ptr->arr[i]->str1);
+		stk_ptr->Push(hm_ptr->arr[i]->str1);
 		max--;
 		if( ( iv.isInventoryClean() == false ) && (max > 0) )
 		{
-			stk_ptr->Push(hm_ptr->arr[i]->str1);
 			for(int j=i+1; j < hm_ptr->size; j++ )
 			{
-				Btrack(hm_ptr,iv,stk_ptr, max, j);
+				Btrack(hm_ptr,iv,stk_ptr, max, j, in_idx);
 			}
+			stk_ptr->Pop(false);
 
 		}
 		else if( iv.isInventoryClean() == true )
 	    {
 			string tmp_str;
-			while( ( tmp_str = stk_ptr->Pop() ) != "\0" )
+			while( ( tmp_str = stk_ptr->Pop(true) ) != "\0" )
 			{
+				tmp_str.resize(tmp_str.length()-1);
 				cout<<tmp_str<<" ";
 			}
 			cout<<"\n";
+			//Push back only the initial starting word
+            stk_ptr->Push(hm_ptr->arr[in_idx]->str1);
 	    }
 		else
 		{
 			/* Inventory hasnt been cleaned with the set of words used but max limit reached
 			 * clean the stack contents
 			 */
-			string tmp2 = stk_ptr->Pop();
-			while(tmp2 != "\0 ")
-				stk_ptr->Pop();
+			string tmp2 = stk_ptr->Pop(false);
+			while(tmp2 != "\0")
+			{
+				tmp2 = stk_ptr->Pop(false);
+				//Push back only the initial starting word
+				if( tmp2 == hm_ptr->arr[in_idx]->str1 )
+				{
+					stk_ptr->Push(tmp2);
+					break;
+				}
+			}
+
 		}
 
 	}
 
 }
+
 
 /* TO DO:
  * Define destructors
